@@ -122,6 +122,7 @@ export default class Minesweeper {
 
     // Set the game status as active because is a new game
     this.gameStatus = 'active';
+    this.dispatchEvent('game');
 
     // If the selected filed has a zero, reveal all the around values also
     if (this.solution[y][x] === 0) {
@@ -274,18 +275,22 @@ export default class Minesweeper {
    * @param {Error} [error]
    * @memberof Minesweeper
    */
-  private dispatchEvent(event: GameEvent, error?: Error) {
-    this.registeredEvents[event].forEach((callback: EventsCallback): void => {
-      switch (event) {
-        case 'board':
-          (callback as (board: Board) => void)(this.currentBoard);
-        case 'game':
-          (callback as (status: GameStatus) => void)(this.gameStatus);
-        case 'error':
-          (callback as (error: Error) => void)(error!);
-        default:
-          break;
-      }
-    })
+  private dispatchEvent(event: 'error', error: Error): void;
+  private dispatchEvent(event: 'board'): void;
+  private dispatchEvent(event: 'game'): void;
+  private dispatchEvent(event: GameEvent, error?: Error): void {
+    if (event === 'board') {
+      this.registeredEvents.board.forEach((callback) => {
+        callback(this.currentBoard);
+      });
+    } else if (event === 'error' && error) {
+      this.registeredEvents.error.forEach((callback) => {
+        callback(error);
+      });
+    } else if (event === 'game') {
+      this.registeredEvents.game.forEach((callback) => {
+        callback(this.gameStatus);
+      });
+    }
   }
 }
