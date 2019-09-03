@@ -58,14 +58,19 @@ export const random2dPositioner = (size: number, count: number, ignore: Move = [
  * @param {Move} [x, y]
  * @returns
  */
-export const coordinatesAround = ([x, y]: Move) => {
-  const right = x - 1;
-  const left = x + 1;
-  const top = y - 1;
-  const bottom = y + 1;
+export const coordinatesAround = ([x, y]: Move, maximum: number): Move[] => {
+  return Array(8).fill([]).map((e, i) => {
+    // get relative position in a 2d matrix, if the index is more than 4 means is after the center
+    const position = i < 4 ? i : i + 1;
+    const xi = (Math.floor(position / 3) - 1) + y;
+    const yi = ((position % 3) - 1) + x;
 
-  // TODO - Remove "-1" values
-  return [[left, top], [x, top], [right, top], [left, y], [right, y], [left, bottom], [x, bottom], [right, bottom]];
+    if (xi === -1 || xi > maximum || yi === -1 || yi > maximum) {
+      return null;
+    }
+
+    return [xi, yi];
+  }).filter((coordinates) => coordinates !== null) as Move[];
 }
 
 /**

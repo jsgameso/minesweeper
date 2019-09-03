@@ -2,6 +2,10 @@ import { random2dPositioner, coordinatesAround, cloneBoard } from "./helpers";
 
 type Move = [number, number];
 type Board = Array<Array<number | null>>;
+type GameStatus = 'active' | 'loose' | 'win' | 'cheater';
+type GameEvent = 'board' | 'error' | 'game';
+type GameLevel = 'hard' | 'medium' | 'easy';
+type EventsCallback = ((board: Board) => void) | ((error: Error) => void) | ((status: GameStatus) => void);
 
 export default class Minesweeper {
   private places: number; // How many fileds are in the board
@@ -10,16 +14,21 @@ export default class Minesweeper {
   private solution: Board = []; // Revealed board
   private readonly whiteBoard: Board = Array(this.size).fill(Array(this.size).fill(0)); // Board filled with zeros
   private readonly emptyBoard: Board = Array(this.size).fill(Array(this.size).fill(null)); // Board filled with nulls
-  private gameStatus: 'active' | 'loose' | 'win' | 'cheater' = 'loose'; // Current Game status
+  private gameStatus: GameStatus = 'loose'; // Current Game status
   private currentBoard: Board = cloneBoard(this.emptyBoard); // Last board of the game
+  private registeredEvents = { // List of registered events
+    board: [] as ((board: Board) => void)[],
+    error: [] as ((error: Error) => void)[],
+    game: [] as ((status: GameStatus) => void)[],
+  }
 
   /**
    * Creates an instance of Minesweeper game.
    * @param {number} [size=10]
-   * @param {('hard' | 'medium' | 'easy')} [level='medium']
+   * @param {GameLevel} [level='medium']
    * @memberof Minesweeper
    */
-  constructor(private readonly size: number = 10, private readonly level: 'hard' | 'medium' | 'easy' = 'medium') {
+  constructor(private readonly size: number = 10, private readonly level: GameLevel = 'medium') {
     // Set the places by squaring the size of the board
     this.places = this.size**2;
 
@@ -32,6 +41,48 @@ export default class Minesweeper {
 
     // Set the ammount of mines
     this.mines = Math.round(this.places * ratios[this.level]) + 1;
+  }
+
+  /**
+   * Current board.
+   *
+   * @readonly
+   * @type {Board}
+   * @memberof Minesweeper
+   */
+  public get board(): Board {
+    return cloneBoard(this.currentBoard);
+  }
+
+  /**
+   * Current Game Status.
+   *
+   * @readonly
+   * @type {GameStatus}
+   * @memberof Minesweeper
+   */
+  public get status(): GameStatus {
+    return this.gameStatus;
+  }
+
+  /**
+   * Register event listener.
+   *
+   * @param {GameEvent} event
+   * @param {((response: GameStatus | Board | Error) => void)} callback
+   * @memberof Minesweeper
+   */
+  public on(event: 'board', callback: (board: Board) => void): void;
+  public on(event: 'error', callback: (error: Error) => void): void;
+  public on(event: 'game', callback: (status: GameStatus) => void): void;
+  public on(event: GameEvent, callback: EventsCallback): void {
+    if (event === 'board') {
+      this.registeredEvents.board.push(callback as (board: Board) => void);
+    } else if (event === 'error') {
+      this.registeredEvents.error.push(callback as (error: Error) => void);
+    } else if (event === 'game') {
+      this.registeredEvents.game.push(callback as (status: GameStatus) => void);
+    }
   }
 
   /**
@@ -50,12 +101,12 @@ export default class Minesweeper {
 
     this.positions.forEach(([x, y]) => {
       // put the mine
-      tempBoard[x][y] = 10;
+      tempBoard[y][x] = 10;
 
       // add 1 around as a clue
-      coordinatesAround([x, y]).forEach(([xi, yi]) => {
-        if (xi >= 0 && xi < this.size && yi >= 0 && yi < this.size && tempBoard[xi][yi]! < 10) {
-          tempBoard[xi][yi]! += 1;
+      coordinatesAround([x, y], this.size - 1).forEach(([xi, yi]) => {
+        if (tempBoard[yi][xi]! < 10) {
+          tempBoard[yi][xi]! += 1;
         }
       });
     });
@@ -73,14 +124,15 @@ export default class Minesweeper {
     this.gameStatus = 'active';
 
     // If the selected filed has a zero, reveal all the around values also
-    if (this.solution[x][y] === 0) {
+    if (this.solution[y][x] === 0) {
       return this.revealZeros(firstMove);
     }
 
     // Otherwise just reveal the field
-    this.currentBoard[x][y] = this.solution[x][y];
+    this.currentBoard[y][x] = this.solution[y][x];
 
-    // Return the board
+    // Return the board and emit
+    this.dispatchEvent('board');
     return this.currentBoard;
   }
 
@@ -93,14 +145,16 @@ export default class Minesweeper {
    */
   public reveal([x, y]: Move): Board {
     if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
-      // If the gived coordinates are out of the limits throw an error
-      throw new Error('Invalid Move');
+      // If the gived coordinates are out of the limits throw an error and emit
+      const error = new Error('Invalid Move');
+      this.dispatchEvent('error', error);
+      throw error;
     }
 
     // Only perform the action if the game is active
     if (this.gameStatus === 'active') {
       // Get the revealed field
-      const revealed = this.solution[x][y];
+      const revealed = this.solution[y][x];
 
       if (revealed === 10) {
         // If the revealed value was 10 means is a mine, so finish the game
@@ -115,9 +169,11 @@ export default class Minesweeper {
       // Otherwise just reveal the value in the current game board
       const workingBoard = cloneBoard(this.currentBoard);
 
-      workingBoard[x][y] = revealed;
+      workingBoard[y][x] = revealed;
 
+      // Save new board, return it and emit
       this.currentBoard = workingBoard;
+      this.dispatchEvent('board');
       return this.currentBoard;
     }
 
@@ -144,9 +200,13 @@ export default class Minesweeper {
    * @memberof Minesweeper
    */
   private gameOver(): Board {
+    // Set status to loose and emit
     this.gameStatus = 'loose';
+    this.dispatchEvent('game');
 
+    // Reveal the solution and emit
     this.currentBoard = this.solution;
+    this.dispatchEvent('board');
     return this.currentBoard;
   }
 
@@ -160,33 +220,35 @@ export default class Minesweeper {
    * @memberof Minesweeper
    */
   private revealZeros([x, y]: Move, tempBoard?: Board): Board {
-    if (this.solution[x][y] !== 0) {
-      // If the gived coordinates wasn't 0 means the user is cheating, so finish the game
+    if (this.solution[y][x] !== 0) {
+      // If the gived coordinates wasn't 0 means the user is cheating, so finish the game and emit
       this.gameStatus = 'cheater';
+      this.dispatchEvent('game');
 
-      throw new Error('Cheater');
+      // Throw the cheater error and emit
+      const error = new Error('Cheater');
+      this.dispatchEvent('error', error);
+      throw error;
     }
 
     // Create a copy of the board and place the value which is 0
     let workingBoard = cloneBoard(tempBoard || this.currentBoard);
-    workingBoard[x][y] = 0;
+    workingBoard[y][x] = 0;
 
     // Get the coordinates around
-    const around = coordinatesAround([x, y]);
+    const around = coordinatesAround([x, y], this.size - 1);
 
     around.forEach(([xi, yi]) => {
-      // For each around coordinate and it's inside the board, reveal the value
-      if (xi >= 0 && xi < this.size && yi >= 0 && yi < this.size) {
-        workingBoard[xi][yi] = this.solution[xi][yi]
-      }
+      // For each around coordinate reveal the value
+      workingBoard[yi][xi] = this.solution[yi][xi];
     });
    
     around.forEach(([xi, yi]) => {
       // For each around coordinate and its value is 0 reveal the around values
-      if (xi >= 0 && xi < this.size && yi >= 0 && yi < this.size && this.solution[xi][yi] === 0) {
+      if (this.solution[yi][xi] === 0) {
         // Also check if the around values are null, if isn't then it could cycle the code
-        const hasNullsAround = Boolean(coordinatesAround([xi, yi])
-          .map(([xa, ya]) => xa === -1 || ya === -1 ? 10 : workingBoard[xa][ya]).filter(v => v === null).length);
+        const hasNullsAround = Boolean(coordinatesAround([xi, yi], this.size - 1)
+          .map(([xa, ya]) => workingBoard[ya][xa]).filter(v => v === null).length);
 
         if (hasNullsAround) {
           // The second argument is to keep the already revealed values
@@ -197,6 +259,33 @@ export default class Minesweeper {
 
     // Store the final result and return it
     this.currentBoard = workingBoard;
+    if (!tempBoard) {
+      // If isn't a recursive instance emit the new board
+      this.dispatchEvent('board');
+    }
     return this.currentBoard;
+  }
+
+  /**
+   * Dispatch an internal event.
+   *
+   * @private
+   * @param {GameEvent} event
+   * @param {Error} [error]
+   * @memberof Minesweeper
+   */
+  private dispatchEvent(event: GameEvent, error?: Error) {
+    this.registeredEvents[event].forEach((callback: EventsCallback): void => {
+      switch (event) {
+        case 'board':
+          (callback as (board: Board) => void)(this.currentBoard);
+        case 'game':
+          (callback as (status: GameStatus) => void)(this.gameStatus);
+        case 'error':
+          (callback as (error: Error) => void)(error!);
+        default:
+          break;
+      }
+    })
   }
 }

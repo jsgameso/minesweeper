@@ -15,12 +15,16 @@ exports.random2dPositioner = (size, count, ignore = [0, 0]) => {
     }
     return result;
 };
-exports.coordinatesAround = ([x, y]) => {
-    const right = x - 1;
-    const left = x + 1;
-    const top = y - 1;
-    const bottom = y + 1;
-    return [[left, top], [x, top], [right, top], [left, y], [right, y], [left, bottom], [x, bottom], [right, bottom]];
+exports.coordinatesAround = ([x, y], maximum) => {
+    return Array(8).fill([]).map((e, i) => {
+        const position = i < 4 ? i : i + 1;
+        const xi = (Math.floor(position / 3) - 1) + y;
+        const yi = ((position % 3) - 1) + x;
+        if (xi === -1 || xi > maximum || yi === -1 || yi > maximum) {
+            return null;
+        }
+        return [xi, yi];
+    }).filter((coordinates) => coordinates !== null);
 };
 exports.cloneBoard = (board) => {
     return [...board.map(r => [...r])];
