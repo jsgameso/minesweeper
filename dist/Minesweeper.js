@@ -56,6 +56,7 @@ class Minesweeper {
         this.currentBoard = helpers_1.cloneBoard(this.emptyBoard);
         const [x, y] = firstMove;
         this.gameStatus = 'active';
+        this.dispatchEvent('game');
         if (this.solution[y][x] === 0) {
             return this.revealZeros(firstMove);
         }
@@ -125,18 +126,21 @@ class Minesweeper {
         return this.currentBoard;
     }
     dispatchEvent(event, error) {
-        this.registeredEvents[event].forEach((callback) => {
-            switch (event) {
-                case 'board':
-                    callback(this.currentBoard);
-                case 'game':
-                    callback(this.gameStatus);
-                case 'error':
-                    callback(error);
-                default:
-                    break;
-            }
-        });
+        if (event === 'board') {
+            this.registeredEvents.board.forEach((callback) => {
+                callback(this.currentBoard);
+            });
+        }
+        else if (event === 'error' && error) {
+            this.registeredEvents.error.forEach((callback) => {
+                callback(error);
+            });
+        }
+        else if (event === 'game') {
+            this.registeredEvents.game.forEach((callback) => {
+                callback(this.gameStatus);
+            });
+        }
     }
 }
 exports.default = Minesweeper;
