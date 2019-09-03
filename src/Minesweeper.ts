@@ -1,11 +1,11 @@
 import { random2dPositioner, coordinatesAround, cloneBoard } from "./helpers";
 
-type Move = [number, number];
-type Board = Array<Array<number | null>>;
-type GameStatus = 'active' | 'loose' | 'win' | 'cheater';
-type GameEvent = 'board' | 'error' | 'game';
-type GameLevel = 'hard' | 'medium' | 'easy';
-type EventsCallback = ((board: Board) => void) | ((error: Error) => void) | ((status: GameStatus) => void);
+export type Move = [number, number];
+export type Board = Array<Array<number | null>>;
+export type GameStatus = 'active' | 'loose' | 'win' | 'cheater';
+export type GameEvent = 'board' | 'error' | 'game';
+export type GameLevel = 'hard' | 'medium' | 'easy';
+export type EventsCallback = ((board: Board) => void) | ((error: Error) => void) | ((status: GameStatus) => void);
 
 export default class Minesweeper {
   private places: number; // How many fileds are in the board

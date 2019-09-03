@@ -1,5 +1,4 @@
-type Move = [number, number];
-type Board = Array<Array<number | null>>;
+import { Move, Board } from "./Minesweeper";
 
 /**
  * Get random number betwwen range of min and max, (min and max also appear as result).

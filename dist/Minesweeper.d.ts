@@ -1,7 +1,9 @@
-declare type Move = [number, number];
-declare type Board = Array<Array<number | null>>;
-declare type GameStatus = 'active' | 'loose' | 'win' | 'cheater';
-declare type GameLevel = 'hard' | 'medium' | 'easy';
+export declare type Move = [number, number];
+export declare type Board = Array<Array<number | null>>;
+export declare type GameStatus = 'active' | 'loose' | 'win' | 'cheater';
+export declare type GameEvent = 'board' | 'error' | 'game';
+export declare type GameLevel = 'hard' | 'medium' | 'easy';
+export declare type EventsCallback = ((board: Board) => void) | ((error: Error) => void) | ((status: GameStatus) => void);
 export default class Minesweeper {
     private readonly size;
     private readonly level;
@@ -27,5 +29,4 @@ export default class Minesweeper {
     private revealZeros;
     private dispatchEvent;
 }
-export {};
 //# sourceMappingURL=Minesweeper.d.ts.map
