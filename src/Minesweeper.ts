@@ -39,7 +39,7 @@ export default class Minesweeper {
       hard: 0.35, // 35 mines in a 10 * 10 board (100 fields)
     }
 
-    // Set the ammount of mines
+    // Set the ammount of mines. Add one extra to always be sure to have at least one
     this.mines = Math.round(this.places * ratios[this.level]) + 1;
   }
 
@@ -104,7 +104,7 @@ export default class Minesweeper {
       tempBoard[y][x] = 10;
 
       // add 1 around as a clue
-      coordinatesAround([x, y], this.size - 1).forEach(([xi, yi]) => {
+      coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
         if (tempBoard[yi][xi]! < 10) {
           tempBoard[yi][xi]! += 1;
         }
@@ -237,7 +237,7 @@ export default class Minesweeper {
     workingBoard[y][x] = 0;
 
     // Get the coordinates around
-    const around = coordinatesAround([x, y], this.size - 1);
+    const around = coordinatesAround([x, y], this.size);
 
     around.forEach(([xi, yi]) => {
       // For each around coordinate reveal the value
@@ -248,7 +248,7 @@ export default class Minesweeper {
       // For each around coordinate and its value is 0 reveal the around values
       if (this.solution[yi][xi] === 0) {
         // Also check if the around values are null, if isn't then it could cycle the code
-        const hasNullsAround = Boolean(coordinatesAround([xi, yi], this.size - 1)
+        const hasNullsAround = Boolean(coordinatesAround([xi, yi], this.size)
           .map(([xa, ya]) => workingBoard[ya][xa]).filter(v => v === null).length);
 
         if (hasNullsAround) {

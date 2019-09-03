@@ -46,7 +46,7 @@ class Minesweeper {
         const tempBoard = helpers_1.cloneBoard(this.whiteBoard);
         this.positions.forEach(([x, y]) => {
             tempBoard[y][x] = 10;
-            helpers_1.coordinatesAround([x, y], this.size - 1).forEach(([xi, yi]) => {
+            helpers_1.coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
                 if (tempBoard[yi][xi] < 10) {
                     tempBoard[yi][xi] += 1;
                 }
@@ -106,13 +106,13 @@ class Minesweeper {
         }
         let workingBoard = helpers_1.cloneBoard(tempBoard || this.currentBoard);
         workingBoard[y][x] = 0;
-        const around = helpers_1.coordinatesAround([x, y], this.size - 1);
+        const around = helpers_1.coordinatesAround([x, y], this.size);
         around.forEach(([xi, yi]) => {
             workingBoard[yi][xi] = this.solution[yi][xi];
         });
         around.forEach(([xi, yi]) => {
             if (this.solution[yi][xi] === 0) {
-                const hasNullsAround = Boolean(helpers_1.coordinatesAround([xi, yi], this.size - 1)
+                const hasNullsAround = Boolean(helpers_1.coordinatesAround([xi, yi], this.size)
                     .map(([xa, ya]) => workingBoard[ya][xa]).filter(v => v === null).length);
                 if (hasNullsAround) {
                     workingBoard = this.revealZeros([xi, yi], workingBoard);
