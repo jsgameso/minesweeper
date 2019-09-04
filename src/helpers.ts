@@ -38,7 +38,7 @@ export const random2dPositioner = (size: number, count: number, ignore: Move = [
     const column = randomBetween(0, size - 1);
     const row = randomBetween(0, size - 1);
 
-    const exist = result.find(([x, y]) => x === column && y === column);
+    const exist = result.find(([x, y]) => x === column && y === row);
 
     // Check a random true/false, if the coordinates wasn't already taken and if the coordinates aren't requested for ignore
     if (getLuck() && !exist && !(column === ignore[0] && row === ignore[1])) {
