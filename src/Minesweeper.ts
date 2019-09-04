@@ -134,6 +134,7 @@ export default class Minesweeper {
 
     // Return the board and emit
     this.dispatchEvent('board');
+    this.checkForWin();
     return this.currentBoard;
   }
 
@@ -175,6 +176,7 @@ export default class Minesweeper {
       // Save new board, return it and emit
       this.currentBoard = workingBoard;
       this.dispatchEvent('board');
+      this.checkForWin();
       return this.currentBoard;
     }
 
@@ -263,8 +265,18 @@ export default class Minesweeper {
     if (!tempBoard) {
       // If isn't a recursive instance emit the new board
       this.dispatchEvent('board');
+      this.checkForWin();
     }
     return this.currentBoard;
+  }
+
+  private checkForWin() {
+    const leftHidden = this.currentBoard.flat(1).filter(v => v === null).length;
+
+    if (leftHidden === this.mines) {
+      this.gameStatus = 'win';
+      this.dispatchEvent('game');
+    }
   }
 
   /**
