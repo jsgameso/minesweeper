@@ -62,6 +62,7 @@ class Minesweeper {
         }
         this.currentBoard[y][x] = this.solution[y][x];
         this.dispatchEvent('board');
+        this.checkForWin();
         return this.currentBoard;
     }
     reveal([x, y]) {
@@ -82,6 +83,7 @@ class Minesweeper {
             workingBoard[y][x] = revealed;
             this.currentBoard = workingBoard;
             this.dispatchEvent('board');
+            this.checkForWin();
             return this.currentBoard;
         }
         return this.currentBoard;
@@ -122,8 +124,16 @@ class Minesweeper {
         this.currentBoard = workingBoard;
         if (!tempBoard) {
             this.dispatchEvent('board');
+            this.checkForWin();
         }
         return this.currentBoard;
+    }
+    checkForWin() {
+        const leftHidden = this.currentBoard.flat(1).filter(v => v === null).length;
+        if (leftHidden === this.mines) {
+            this.gameStatus = 'win';
+            this.dispatchEvent('game');
+        }
     }
     dispatchEvent(event, error) {
         if (event === 'board') {

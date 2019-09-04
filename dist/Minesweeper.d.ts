@@ -27,6 +27,7 @@ export default class Minesweeper {
     surrender(): Board;
     private gameOver;
     private revealZeros;
+    private checkForWin;
     private dispatchEvent;
 }
 //# sourceMappingURL=Minesweeper.d.ts.map

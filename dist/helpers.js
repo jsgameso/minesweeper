@@ -8,7 +8,7 @@ exports.random2dPositioner = (size, count, ignore = [-1, -1]) => {
     while (left > 0) {
         const column = exports.randomBetween(0, size - 1);
         const row = exports.randomBetween(0, size - 1);
-        const exist = result.find(([x, y]) => x === column && y === column);
+        const exist = result.find(([x, y]) => x === column && y === row);
         if (exports.getLuck() && !exist && !(column === ignore[0] && row === ignore[1])) {
             result.push([column, row]);
             left -= 1;

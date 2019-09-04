@@ -29,7 +29,7 @@ describe('random2dPositioner', () => {
   const size = 10;
   const count = (size**2) * .4;
 
-  it('shuld create specific amount', () => {
+  it('Should create specific amount', () => {
     const positions = random2dPositioner(size, count);
 
     expect(positions.length).toBe(count);
@@ -47,10 +47,21 @@ describe('random2dPositioner', () => {
     const ignore: [number, number] = [4, 5];
 
     // Hundred of results
-    const results = Array(10).fill([]).map(() => random2dPositioner(size, count, ignore)).flat(1);
+    const results = Array(100).fill([]).map(() => random2dPositioner(size, count, ignore)).flat(1);
     const outTheRange = results.filter(([x, y]) => x === ignore[0] && y === ignore[1]);
 
     expect(outTheRange.length).toBe(0);
+  });
+
+  it('Should not include repeated positions', () => {
+    // Hundred of results
+    const results = Array(100).fill([]).map(() => random2dPositioner(size, count));
+    
+    results.forEach((result) => {
+      result.forEach(([x, y]) => {
+        expect(result.filter(([xi, yi]) => x === xi && y === yi).length).toBe(1);
+      });
+    });
   });
 });
 

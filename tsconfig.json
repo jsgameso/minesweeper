@@ -11,5 +11,8 @@
     "strict": true,
     "alwaysStrict": true,
     "esModuleInterop": true
-  }
+  },
+  "exclude": [
+    "src/**/__test__/*"
+  ]
 }

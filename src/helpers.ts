@@ -1,7 +1,7 @@
 import { Move, Board } from "./Minesweeper";
 
 /**
- * Get random number betwwen range of min and max, (min and max also appear as result).
+ * Get random number between range of min and max, (min and max also appear as result).
  *
  * @param {number} min
  * @param {number} max
