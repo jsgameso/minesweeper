@@ -5,12 +5,11 @@ class Minesweeper {
     constructor(size = 10, level = 'medium') {
         this.size = size;
         this.level = level;
-        this.positions = [];
-        this.solution = [];
         this.whiteBoard = Array(this.size).fill(Array(this.size).fill(0));
         this.emptyBoard = Array(this.size).fill(Array(this.size).fill(null));
-        this.gameStatus = 'loose';
         this.currentBoard = helpers_1.cloneBoard(this.emptyBoard);
+        this.solution = this.newSolution();
+        this.gameStatus = 'loose';
         this.registeredEvents = {
             board: [],
             error: [],
@@ -22,7 +21,7 @@ class Minesweeper {
             medium: 0.15,
             hard: 0.35,
         };
-        this.mines = Math.round(this.places * ratios[this.level]) + 1;
+        this.minesCount = Math.round(this.places * ratios[this.level]) + 1;
     }
     get board() {
         return helpers_1.cloneBoard(this.currentBoard);
@@ -42,25 +41,14 @@ class Minesweeper {
         }
     }
     newGame(firstMove) {
-        this.positions = helpers_1.random2dPositioner(this.size, this.mines, firstMove);
-        const tempBoard = helpers_1.cloneBoard(this.whiteBoard);
-        this.positions.forEach(([x, y]) => {
-            tempBoard[y][x] = 10;
-            helpers_1.coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
-                if (tempBoard[yi][xi] < 10) {
-                    tempBoard[yi][xi] += 1;
-                }
-            });
-        });
-        this.solution = tempBoard;
-        this.currentBoard = helpers_1.cloneBoard(this.emptyBoard);
+        this.solution = this.newSolution(firstMove);
         const [x, y] = firstMove;
         this.gameStatus = 'active';
         this.dispatchEvent('game');
-        if (this.solution[y][x] === 0) {
+        if (this.solution.query(x, y) === 0) {
             return this.revealZeros(firstMove);
         }
-        this.currentBoard[y][x] = this.solution[y][x];
+        this.currentBoard[y][x] = this.solution.query(x, y);
         this.dispatchEvent('board');
         this.checkForWin();
         return this.currentBoard;
@@ -72,7 +60,7 @@ class Minesweeper {
             throw error;
         }
         if (this.gameStatus === 'active') {
-            const revealed = this.solution[y][x];
+            const revealed = this.solution.query(x, y);
             if (revealed === 10) {
                 return this.gameOver();
             }
@@ -94,12 +82,12 @@ class Minesweeper {
     gameOver() {
         this.gameStatus = 'loose';
         this.dispatchEvent('game');
-        this.currentBoard = this.solution;
+        this.currentBoard = this.solution.getSolution();
         this.dispatchEvent('board');
         return this.currentBoard;
     }
     revealZeros([x, y], tempBoard) {
-        if (this.solution[y][x] !== 0) {
+        if (this.solution.query(x, y) !== 0) {
             this.gameStatus = 'cheater';
             this.dispatchEvent('game');
             const error = new Error('Cheater');
@@ -109,11 +97,13 @@ class Minesweeper {
         let workingBoard = helpers_1.cloneBoard(tempBoard || this.currentBoard);
         workingBoard[y][x] = 0;
         const around = helpers_1.coordinatesAround([x, y], this.size);
-        around.forEach(([xi, yi]) => {
-            workingBoard[yi][xi] = this.solution[yi][xi];
+        const aroundResults = around.map(([xi, yi]) => {
+            const value = this.solution.query(xi, yi);
+            workingBoard[yi][xi] = value;
+            return [xi, yi, value];
         });
-        around.forEach(([xi, yi]) => {
-            if (this.solution[yi][xi] === 0) {
+        aroundResults.forEach(([xi, yi, value]) => {
+            if (value === 0) {
                 const hasNullsAround = Boolean(helpers_1.coordinatesAround([xi, yi], this.size)
                     .map(([xa, ya]) => workingBoard[ya][xa]).filter(v => v === null).length);
                 if (hasNullsAround) {
@@ -130,7 +120,7 @@ class Minesweeper {
     }
     checkForWin() {
         const leftHidden = this.currentBoard.flat(1).filter(v => v === null).length;
-        if (leftHidden === this.mines) {
+        if (leftHidden === this.minesCount) {
             this.gameStatus = 'win';
             this.dispatchEvent('game');
         }
@@ -151,6 +141,52 @@ class Minesweeper {
                 callback(this.gameStatus);
             });
         }
+    }
+    newSolution(firstMove) {
+        const solution = helpers_1.cloneBoard(this.whiteBoard);
+        const positions = helpers_1.random2dPositioner(this.size, this.minesCount, firstMove);
+        this.currentBoard = helpers_1.cloneBoard(this.emptyBoard);
+        positions.forEach(([x, y]) => {
+            solution[y][x] = 10;
+            helpers_1.coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
+                if (solution[yi][xi] < 10) {
+                    solution[yi][xi] += 1;
+                }
+            });
+        });
+        const looseTheGame = () => {
+            this.gameStatus = 'loose';
+            this.dispatchEvent('game');
+            return helpers_1.cloneBoard(solution);
+        };
+        let queryCount = 0;
+        return {
+            getSolution: () => {
+                return looseTheGame();
+            },
+            query: (x, y) => {
+                if (queryCount > 9) {
+                    this.gameStatus = 'cheater';
+                    this.dispatchEvent('game');
+                    const error = new Error('Cheater');
+                    this.dispatchEvent('error', error);
+                    throw error;
+                }
+                const value = solution[y][x];
+                if (value === 10) {
+                    looseTheGame();
+                    return 10;
+                }
+                if (value !== 0) {
+                    queryCount += 1;
+                    setTimeout(() => { queryCount -= 1; }, 50);
+                }
+                else {
+                    queryCount = 0;
+                }
+                return value;
+            }
+        };
     }
 }
 exports.default = Minesweeper;

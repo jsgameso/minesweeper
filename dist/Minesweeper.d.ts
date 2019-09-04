@@ -4,17 +4,20 @@ export declare type GameStatus = 'active' | 'loose' | 'win' | 'cheater';
 export declare type GameEvent = 'board' | 'error' | 'game';
 export declare type GameLevel = 'hard' | 'medium' | 'easy';
 export declare type EventsCallback = ((board: Board) => void) | ((error: Error) => void) | ((status: GameStatus) => void);
+export interface Solution {
+    query: (x: number, y: number) => number;
+    getSolution: () => Board;
+}
 export default class Minesweeper {
     private readonly size;
     private readonly level;
-    private places;
-    private mines;
-    private positions;
-    private solution;
     private readonly whiteBoard;
     private readonly emptyBoard;
-    private gameStatus;
     private currentBoard;
+    private places;
+    private minesCount;
+    private solution;
+    private gameStatus;
     private registeredEvents;
     constructor(size?: number, level?: GameLevel);
     readonly board: Board;
@@ -29,5 +32,6 @@ export default class Minesweeper {
     private revealZeros;
     private checkForWin;
     private dispatchEvent;
+    private newSolution;
 }
 //# sourceMappingURL=Minesweeper.d.ts.map
