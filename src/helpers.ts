@@ -1,4 +1,4 @@
-import Minesweeper, { Move, Board } from "./Minesweeper";
+import Minesweeper, { Move } from "./Minesweeper";
 
 /**
  * Get random number between range of min and max, (min and max also appear as result).
