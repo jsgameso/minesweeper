@@ -11,15 +11,14 @@ export interface Solution {
 export default class Minesweeper {
     private readonly size;
     private readonly level;
-    private readonly whiteBoard;
-    private readonly emptyBoard;
+    private readonly winnerBoard?;
+    static emptyBoard<T>(size: number, fillWith?: T): Array<Array<T>>;
     private currentBoard;
-    private places;
     private minesCount;
     private solution;
     private gameStatus;
     private registeredEvents;
-    constructor(size?: number, level?: GameLevel);
+    constructor(size?: number, level?: GameLevel, winnerBoard?: number[][] | undefined);
     readonly board: Board;
     readonly status: GameStatus;
     on(event: 'board', callback: (board: Board) => void): void;

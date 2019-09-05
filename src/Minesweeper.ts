@@ -13,10 +13,23 @@ export interface Solution {
 }
 
 export default class Minesweeper {
-  private readonly whiteBoard: Board = Array(this.size).fill(Array(this.size).fill(0)); // Board filled with zeros
-  private readonly emptyBoard: Board = Array(this.size).fill(Array(this.size).fill(null)); // Board filled with nulls
-  private currentBoard: Board = cloneBoard(this.emptyBoard); // Last board of the game
-  private places: number; // How many fileds are in the board
+  /**
+   * Method to create a empty board with a given default value.
+   *
+   * @static
+   * @template T
+   * @param {number} size
+   * @param {T} [fillWith]
+   * @returns {Array<Array<T>>}
+   * @memberof Minesweeper
+   */
+  public static emptyBoard<T>(size: number, fillWith?: T): Array<Array<T>> {
+    const filled = typeof fillWith === 'undefined' ? null : fillWith;
+
+    return cloneBoard<T>(Array(size).fill(Array(size).fill(filled)));
+  }
+
+  private currentBoard: Board = Minesweeper.emptyBoard<null>(this.size); // Last board of the game
   private minesCount: number; // How many mines are in the board
   private solution: Solution = this.newSolution(); // Revealed board
   private gameStatus: GameStatus = 'loose'; // Current Game status
@@ -32,10 +45,11 @@ export default class Minesweeper {
    * @param {GameLevel} [level='medium']
    * @memberof Minesweeper
    */
-  constructor(private readonly size: number = 10, private readonly level: GameLevel = 'medium') {
-    // Set the places by squaring the size of the board
-    this.places = this.size**2;
-
+  constructor(
+    private readonly size: number = 10,
+    private readonly level: GameLevel = 'medium',
+    private readonly winnerBoard?: number[][],
+  ) {
     // How many mines will appear in the board according to the level
     const ratios = {
       easy: 0.07, // 7 mines in a 10 * 10 board (100 fields)
@@ -44,7 +58,7 @@ export default class Minesweeper {
     }
 
     // Set the ammount of mines. Add one extra to always be sure to have at least one
-    this.minesCount = Math.round(this.places * ratios[this.level]) + 1;
+    this.minesCount = Math.round(this.size**2 * ratios[this.level]) + 1;
   }
 
   /**
@@ -66,7 +80,8 @@ export default class Minesweeper {
    * @memberof Minesweeper
    */
   public get status(): GameStatus {
-    return this.gameStatus;
+    const status = this.gameStatus;
+    return status;
   }
 
   /**
@@ -86,6 +101,8 @@ export default class Minesweeper {
       this.registeredEvents.error.push(callback as (error: Error) => void);
     } else if (event === 'game') {
       this.registeredEvents.game.push(callback as (status: GameStatus) => void);
+    } else {
+      throw new Error('Invalid Event');
     }
   }
 
@@ -293,25 +310,35 @@ export default class Minesweeper {
     }
   }
 
+  /**
+   * Methood to create new solution object. That object has own methods to check values.
+   *
+   * @private
+   * @param {[number, number]} [firstMove]
+   * @returns {Solution}
+   * @memberof Minesweeper
+   */
   private newSolution(firstMove?: [number, number]): Solution {
     // Create an inmutable board for the solution board
-    const solution = cloneBoard(this.whiteBoard) as number[][];
+    const solution = this.winnerBoard || Minesweeper.emptyBoard<number>(this.size, 0);
     // Get the mine positions
     const positions = random2dPositioner(this.size, this.minesCount, firstMove);
     // Create a new board for the game with hidden values
-    this.currentBoard = cloneBoard(this.emptyBoard);
+    this.currentBoard = Minesweeper.emptyBoard<null>(this.size);
 
-    positions.forEach(([x, y]) => {
-      // put the mine
-      solution[y][x] = 10;
-
-      // add 1 around as a clue
-      coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
-        if (solution[yi][xi]! < 10) {
-          solution[yi][xi]! += 1;
-        }
+    if (!this.winnerBoard) {
+      positions.forEach(([x, y]) => {
+        // put the mine
+        solution[y][x] = 10;
+  
+        // add 1 around as a clue
+        coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
+          if (solution[yi][xi]! < 10) {
+            solution[yi][xi]! += 1;
+          }
+        });
       });
-    });
+    }
 
     const looseTheGame = (): Board => {
       this.gameStatus = 'loose';
@@ -330,7 +357,7 @@ export default class Minesweeper {
         return looseTheGame();
       },
       query: (x: number, y: number): number => {
-        if (queryCount > 9) {
+        if (queryCount > 9 && !this.winnerBoard) {
           // If the count is greater than 9, maybe the user is using broute force, CHEATER!
           this.gameStatus = 'cheater';
           this.dispatchEvent('game');

@@ -2,12 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const helpers_1 = require("./helpers");
 class Minesweeper {
-    constructor(size = 10, level = 'medium') {
+    constructor(size = 10, level = 'medium', winnerBoard) {
         this.size = size;
         this.level = level;
-        this.whiteBoard = Array(this.size).fill(Array(this.size).fill(0));
-        this.emptyBoard = Array(this.size).fill(Array(this.size).fill(null));
-        this.currentBoard = helpers_1.cloneBoard(this.emptyBoard);
+        this.winnerBoard = winnerBoard;
+        this.currentBoard = Minesweeper.emptyBoard(this.size);
         this.solution = this.newSolution();
         this.gameStatus = 'loose';
         this.registeredEvents = {
@@ -15,19 +14,23 @@ class Minesweeper {
             error: [],
             game: [],
         };
-        this.places = this.size ** 2;
         const ratios = {
             easy: 0.07,
             medium: 0.15,
             hard: 0.35,
         };
-        this.minesCount = Math.round(this.places * ratios[this.level]) + 1;
+        this.minesCount = Math.round(this.size ** 2 * ratios[this.level]) + 1;
+    }
+    static emptyBoard(size, fillWith) {
+        const filled = typeof fillWith === 'undefined' ? null : fillWith;
+        return helpers_1.cloneBoard(Array(size).fill(Array(size).fill(filled)));
     }
     get board() {
         return helpers_1.cloneBoard(this.currentBoard);
     }
     get status() {
-        return this.gameStatus;
+        const status = this.gameStatus;
+        return status;
     }
     on(event, callback) {
         if (event === 'board') {
@@ -38,6 +41,9 @@ class Minesweeper {
         }
         else if (event === 'game') {
             this.registeredEvents.game.push(callback);
+        }
+        else {
+            throw new Error('Invalid Event');
         }
     }
     newGame(firstMove) {
@@ -143,17 +149,19 @@ class Minesweeper {
         }
     }
     newSolution(firstMove) {
-        const solution = helpers_1.cloneBoard(this.whiteBoard);
+        const solution = this.winnerBoard || Minesweeper.emptyBoard(this.size, 0);
         const positions = helpers_1.random2dPositioner(this.size, this.minesCount, firstMove);
-        this.currentBoard = helpers_1.cloneBoard(this.emptyBoard);
-        positions.forEach(([x, y]) => {
-            solution[y][x] = 10;
-            helpers_1.coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
-                if (solution[yi][xi] < 10) {
-                    solution[yi][xi] += 1;
-                }
+        this.currentBoard = Minesweeper.emptyBoard(this.size);
+        if (!this.winnerBoard) {
+            positions.forEach(([x, y]) => {
+                solution[y][x] = 10;
+                helpers_1.coordinatesAround([x, y], this.size).forEach(([xi, yi]) => {
+                    if (solution[yi][xi] < 10) {
+                        solution[yi][xi] += 1;
+                    }
+                });
             });
-        });
+        }
         const looseTheGame = () => {
             this.gameStatus = 'loose';
             this.dispatchEvent('game');
@@ -165,7 +173,7 @@ class Minesweeper {
                 return looseTheGame();
             },
             query: (x, y) => {
-                if (queryCount > 9) {
+                if (queryCount > 9 && !this.winnerBoard) {
                     this.gameStatus = 'cheater';
                     this.dispatchEvent('game');
                     const error = new Error('Cheater');

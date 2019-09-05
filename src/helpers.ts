@@ -1,4 +1,4 @@
-import { Move, Board } from "./Minesweeper";
+import Minesweeper, { Move, Board } from "./Minesweeper";
 
 /**
  * Get random number between range of min and max, (min and max also appear as result).
@@ -7,7 +7,27 @@ import { Move, Board } from "./Minesweeper";
  * @param {number} max
  * @returns {number}
  */
-export const randomBetween = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1) + min);
+export const randomBetween = (min: number, max: number, ignore?: number | number[]): number => {
+  let random = Math.floor(Math.random() * (max - min + 1) + min);
+
+  if (typeof ignore === 'undefined') {
+    return random;
+  } else if (typeof ignore === 'number') {
+    while (random === ignore) {
+      random = Math.floor(Math.random() * (max - min + 1) + min);
+    }
+
+    return random;
+  } else if (ignore instanceof Array && typeof ignore[0] === 'number') {
+    while (ignore.indexOf(random) !== -1) {
+      random = Math.floor(Math.random() * (max - min + 1) + min);
+    }
+
+    return random;
+  }
+
+  throw new Error('Invalid operation');
+};
 
 
 /**
@@ -39,9 +59,10 @@ export const random2dPositioner = (size: number, count: number, ignore: Move = [
     const row = randomBetween(0, size - 1);
 
     const exist = result.find(([x, y]) => x === column && y === row);
+    const isIgnored = column === ignore[0] && row === ignore[1];
 
     // Check a random true/false, if the coordinates wasn't already taken and if the coordinates aren't requested for ignore
-    if (getLuck() && !exist && !(column === ignore[0] && row === ignore[1])) {
+    if (getLuck() && !exist && !isIgnored) {
       // Add the coordinate to the list
       result.push([column, row]);
 
@@ -80,6 +101,78 @@ export const coordinatesAround = ([x, y]: Move, size: number): Move[] => {
  * @param {Board} board
  * @returns {Board}
  */
-export const cloneBoard = (board: Board): Board => {
+export const cloneBoard = <T = (number | null)>(board: T[][]): T[][] => {
   return [...board.map(r => [...r])];
+}
+
+interface WinnerBoard {
+  board: number[][];
+  bombs: Move[];
+  numbers: {
+    1: Move[];
+    2: Move[];
+    3: Move[];
+    4: Move[];
+    5: Move[];
+    6: Move[];
+    7: Move[];
+    8: Move[];
+  };
+  zeros: Move[];
+}
+
+
+/**
+ * Create a winner board with descriptive values.
+ *
+ * @param {number} size
+ * @param {number} bombsCount
+ * @param {Move} ignore
+ * @returns {WinnerBoard}
+ */
+export const createWinnerBoard = (size: number, bombsCount: number, ignore?: Move): WinnerBoard => {
+  const bombs: Move[] = random2dPositioner(size, bombsCount, ignore);
+
+  const board = Minesweeper.emptyBoard<number>(size, 0);
+  
+  bombs.forEach(([x, y]) => {
+    // put the mine
+    board[y][x] = 10;
+
+    // add 1 around as a clue
+    coordinatesAround([x, y], size).forEach(([xi, yi]) => {
+      if (board[yi][xi]! < 10) {
+        board[yi][xi]! += 1;
+      }
+    });
+  });
+
+  const zeros: Move[] = [];
+  const numbers = {
+    1: [] as Move[],
+    2: [] as Move[],
+    3: [] as Move[],
+    4: [] as Move[],
+    5: [] as Move[],
+    6: [] as Move[],
+    7: [] as Move[],
+    8: [] as Move[],
+  }
+
+  board.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      if (cell === 0) {
+        zeros.push([x, y]);
+      } else if (cell < 9) {
+        numbers[cell as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8].push([x, y]);
+      }
+    });
+  });
+
+  return {
+    board,
+    bombs,
+    numbers,
+    zeros,
+  }
 }

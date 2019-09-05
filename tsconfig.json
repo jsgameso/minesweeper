@@ -10,7 +10,10 @@
     "removeComments": true,
     "strict": true,
     "alwaysStrict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "lib": [
+      "esnext"
+    ]
   },
   "exclude": [
     "src/**/__test__/*"

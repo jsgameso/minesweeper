@@ -1,15 +1,42 @@
-import { randomBetween, getLuck, random2dPositioner, coordinatesAround, cloneBoard } from "../helpers";
+import { randomBetween, getLuck, random2dPositioner, coordinatesAround, cloneBoard, createWinnerBoard } from "../helpers";
 import { Move, Board } from "../Minesweeper";
 
 describe('randomBetween', () => {
+  const [min, max] = [3, 46];
+
   it('Should create only numbers between gived range', () => {
-    const [min, max] = [3, 46];
     // One million of results
     const results: number[] = Array(1000000).fill(0).map(() => randomBetween(min, max));
 
     const outTheRange: number[] = results.filter(value => value < min || value > max);
 
     expect(outTheRange.length).toBe(0);
+  });
+
+  it('Should ignore gived single value', () => {
+    const ignore: number = randomBetween(min, max);
+
+    const results: number[] = Array(1000000).fill(0).map(() => randomBetween(min, max, ignore));
+
+    expect(results).not.toContain(ignore);
+  });
+
+  it('Should ignore gived list of values', () => {
+    // 20 numbers to ignore
+    const ignore: number[] = Array(20).fill(0).map(() => randomBetween(min, max));
+
+    const results: number[] = Array(1000000).fill(0).map(() => randomBetween(min, max, ignore));
+
+    const ignored = results.filter((val) => ignore.indexOf(val) !== -1);
+
+    expect(ignored.length).toBe(0);
+  });
+
+  it('Should throw an error if the ignore type doesn\'t match with number | number[]', () => {
+    const error = new Error('Invalid operation');
+
+    // @ts-ignore
+    expect(() => randomBetween(min, max, '')).toThrowError(error);
   });
 });
 
@@ -163,5 +190,57 @@ describe('cloneBoard', () => {
     pureBoard[5][3] = 1;
 
     expect(pureBoard).not.toEqual(board);
+  });
+});
+
+describe('createWinnerBoard', () => {
+  const size = 10;
+  const bombsCount = Math.round((size**2) * .35) + 1;
+  const ignore: Move = [randomBetween(0, 9), randomBetween(0, 9)];
+
+  const {
+    board,
+    bombs,
+    numbers,
+    zeros,
+  } = createWinnerBoard(size, bombsCount, ignore);
+
+  it('Should create a board with the gived size', () => {
+    expect(board.length).toBe(size);
+    board.forEach((row) => {
+      expect(row.length).toBe(size);
+  
+      row.forEach((cell) => {
+        expect(typeof cell).toBe('number');
+      });
+    });
+  });
+
+  it('Should create the exact amount of bombs gived', () => {
+    expect(bombs.length).toBe(bombsCount);
+  });
+
+  it('Should not put a bomb into a ignored position', () => {
+    expect(board[ignore[1]][ignore[0]]).toBeLessThan(10);
+  });
+
+  it('Should match the bomb coordinates with the bombs in the board', () => {
+    bombs.forEach(([x, y]) => {
+      expect(board[y][x]).toBe(10);
+    });
+  });
+
+  it('Should match the numbers list coordinates with the number in the board', () => {
+    Object.keys(numbers).forEach((number) => {
+      numbers[Number(number) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8].forEach(([x, y]) => {
+        expect(board[y][x]).toBe(Number(number));
+      });
+    });
+  });
+
+  it('Should match the zeros coordinates with the zeros in the board', () => {
+    zeros.forEach(([x, y]) => {
+      expect(board[y][x]).toBe(0);
+    });
   });
 });
